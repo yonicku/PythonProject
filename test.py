@@ -2,30 +2,77 @@ import tkinter as tk
 import threading
 import queue
 import keyboard
+import time
+import pyautogui
 
-# 메시지 큐 생성
+# 메시지 큐 생성 (키 입력 명령 전달)
 command_queue = queue.Queue()
 
-# 현재 실행 중인 스레드와 실행 상태를 저장
-current_thread = None
-current_action = None
-stop_event = threading.Event()  # 중지 신호 이벤트 객체
+# 현재 실행 중인 스레드와 상태를 관리
+current_thread = None  # 현재 실행 중인 동작 스레드
+current_action = None  # 현재 실행 중인 동작 이름
+stop_event = threading.Event()  # 동작 중지를 위한 이벤트
 
-# 키 입력 상태를 추적
+# 키 입력 상태를 추적 (키가 처리 중인지 여부)
 key_states = {"f2": False, "f3": False, "f4": False, "f5": False}
+
+# 키 입력 간 딜레이 (초)
+delay = 0.2
 
 # 동작 정의 함수들
 def f2_action():
+    """
+    F2 동작: 순차적으로 키 입력을 수행하며 중지 신호를 확인.
+    순서:
+    1. ESC 키 입력
+    2. 마우스 우클릭
+    3. 숫자 2 입력
+    4. 숫자 3 입력 (반복 횟수 설정 가능)
+    5. Enter 키 입력
+    """
     update_status("F2 동작 실행 중...")
-    for i in range(10):
-        if stop_event.is_set():
-            update_status("F2 동작이 중단되었습니다.")
-            return
-        print(f"F2 실행 중... ({i + 1}초)")
-        stop_event.wait(1)
-    update_status("F2 동작 완료!")
+    try:
+        repeat_count = 5  # 루프 반복 횟수 (기본값: 5)
+
+        while True:  # 동작 반복 시작
+            # 1. ESC 키 입력
+            if stop_event.is_set():
+                raise InterruptedError
+            keyboard.press_and_release("esc")
+            time.sleep(delay)
+
+            # 2. 마우스 우클릭
+            if stop_event.is_set():
+                raise InterruptedError
+            pyautogui.rightClick()  # 마우스 우클릭
+            time.sleep(delay)
+
+            # 3. 숫자 2 입력
+            if stop_event.is_set():
+                raise InterruptedError
+            keyboard.press_and_release("2")
+            time.sleep(delay)
+
+            # 4. 숫자 3 입력 (반복)
+            for _ in range(repeat_count):
+                if stop_event.is_set():
+                    raise InterruptedError
+                keyboard.press_and_release("3")
+                time.sleep(delay)
+
+                # 5. Enter 키 입력
+                if stop_event.is_set():
+                    raise InterruptedError
+                keyboard.press_and_release("enter")
+                time.sleep(delay)
+
+    except InterruptedError:
+        update_status("F2 동작이 중단되었습니다.")
 
 def f3_action():
+    """
+    F3 동작: 5초간 수행하며 매초 중지 신호를 확인.
+    """
     update_status("F3 동작 실행 중...")
     for i in range(5):
         if stop_event.is_set():
@@ -36,6 +83,9 @@ def f3_action():
     update_status("F3 동작 완료!")
 
 def f4_action():
+    """
+    F4 동작: 7초간 수행하며 매초 중지 신호를 확인.
+    """
     update_status("F4 동작 실행 중...")
     for i in range(7):
         if stop_event.is_set():
@@ -46,10 +96,18 @@ def f4_action():
     update_status("F4 동작 완료!")
 
 def update_status(message):
+    """
+    상태를 업데이트하고 GUI에 표시하는 함수.
+    :param message: 상태 메시지
+    """
     status_label.config(text=f"상태: {message}")
     print(message)
 
 def start_action(action_name):
+    """
+    새로운 동작을 시작하거나 기존 동작을 중단 후 시작.
+    :param action_name: 실행할 동작의 이름 ('f2', 'f3', 'f4')
+    """
     global current_thread, current_action, stop_event
 
     # 기존 동작 중지
@@ -69,21 +127,31 @@ def start_action(action_name):
     current_thread.start()
 
 def stop_all_actions():
+    """
+    현재 실행 중인 모든 동작을 중단.
+    """
     global current_thread, stop_event, current_action
 
     if current_thread and current_thread.is_alive():
-        stop_event.set()
-        current_thread.join()
+        stop_event.set()  # 중지 신호 설정
+        current_thread.join()  # 스레드 종료 대기
         current_thread = None
         current_action = None
-        update_status("없음")
+        update_status("없음")  # 상태 초기화
 
 def key_listener():
+    """
+    키 입력을 감지하고 해당 동작을 실행하는 함수.
+    - F2: 동작 1 실행
+    - F3: 동작 2 실행
+    - F4: 동작 3 실행
+    - F5: 모든 동작 중지
+    """
     while True:
         for key in key_states.keys():
             if keyboard.is_pressed(key):
                 if not key_states[key]:  # 키가 아직 처리되지 않았으면
-                    key_states[key] = True  # 키 상태를 활성화
+                    key_states[key] = True
                     if key == "f2":
                         start_action("f2")
                     elif key == "f3":
@@ -93,24 +161,31 @@ def key_listener():
                     elif key == "f5":
                         stop_all_actions()
             else:
-                key_states[key] = False  # 키 상태를 비활성화
+                key_states[key] = False  # 키 상태를 초기화
 
 def create_gui():
+    """
+    GUI 생성 및 실행.
+    """
     global status_label
 
     root = tk.Tk()
     root.title("매크로 프로그램")
     root.geometry("300x300")
 
+    # 상태 표시 라벨
     status_label = tk.Label(root, text="상태: 없음", fg="blue", font=("Arial", 12))
     status_label.pack(pady=10)
 
+    # 각 키에 대한 설명 라벨
     tk.Label(root, text="F2: 동작 1 실행", font=("Arial", 10)).pack(pady=5)
     tk.Label(root, text="F3: 동작 2 실행", font=("Arial", 10)).pack(pady=5)
     tk.Label(root, text="F4: 동작 3 실행", font=("Arial", 10)).pack(pady=5)
     tk.Label(root, text="F5: 모든 동작 중지", font=("Arial", 10), fg="red").pack(pady=5)
 
+    # 키 입력 감지 스레드 실행
     threading.Thread(target=key_listener, daemon=True).start()
+
     root.mainloop()
 
 if __name__ == "__main__":
