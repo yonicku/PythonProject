@@ -3,7 +3,9 @@ import threading
 import queue
 import keyboard
 import time
+import pygetwindow as gw
 import pyautogui
+
 
 # 메시지 큐 생성 (키 입력 명령 전달)
 command_queue = queue.Queue()
@@ -16,58 +18,74 @@ stop_event = threading.Event()  # 동작 중지를 위한 이벤트
 # 키 입력 상태를 추적 (키가 처리 중인지 여부)
 key_states = {"f2": False, "f3": False, "f4": False, "f5": False}
 
-# 키 입력 간 딜레이 (초)
-delay = 0.2
+window = gw.getWindowsWithTitle("MapleStory Worlds-바람의나라 클래식")[0]
+region = (window.left, window.top, window.width, window.height)
 
 # 동작 정의 함수들
+def mouse_right_click():
+    """
+    특정 영역에서 이미지 탐색 후 마우스 우클릭 수행.
+    """
+    if stop_event.is_set():
+        return  # 중단 신호가 설정되면 종료
+
+    start = time.time()  # 시작 시간 저장
+
+    try:
+        for img_file in ['image1.png', 'image2.png', 'image3.png', 'image4.png']:
+            # 이미지 탐색
+            location = pyautogui.locateCenterOnScreen(f'resource/image/{img_file}', region=region, confidence=0.3)
+            if location:
+                print(f"이미지 '{img_file}' 찾음: {location}")
+
+                # 절대 좌표 계산
+                absolute_location = (location[0], location[1])
+                pyautogui.click(absolute_location, button="right")
+            else:
+                print(f"이미지 '{img_file}' 찾지 못함")
+                pyautogui.rightClick()
+    except Exception as e:
+        print(f"mouse_right_click 실행 중 오류 발생: {e}")
+        pyautogui.rightClick()
+
+def keyboard_input(command):
+    if stop_event.is_set():
+        raise InterruptedError
+    keyboard.send(command)
+
 def f2_action():
-    """
-    F2 동작: 순차적으로 키 입력을 수행하며 중지 신호를 확인.
-    순서:
-    1. ESC 키 입력
-    2. 마우스 우클릭
-    3. 숫자 2 입력
-    4. 숫자 3 입력 (반복 횟수 설정 가능)
-    5. Enter 키 입력
-    """
     update_status("F2 동작 실행 중...")
     try:
-        repeat_count = 5  # 루프 반복 횟수 (기본값: 5)
+        repeat_count_1 = 2  # 루프 반복 횟수 (기본값: 5)
+        repeat_count_2 = 4  # 루프 반복 횟수 (기본값: 5)
 
         while True:  # 동작 반복 시작
             # 1. ESC 키 입력
-            if stop_event.is_set():
-                raise InterruptedError
-            keyboard.press_and_release("esc")
-            time.sleep(delay)
-
-            # 2. 마우스 우클릭
-            if stop_event.is_set():
-                raise InterruptedError
-            pyautogui.rightClick()  # 마우스 우클릭
-            time.sleep(delay)
-
-            # 3. 숫자 2 입력
-            if stop_event.is_set():
-                raise InterruptedError
-            keyboard.press_and_release("2")
-            time.sleep(delay)
-
-            # 4. 숫자 3 입력 (반복)
-            for _ in range(repeat_count):
-                if stop_event.is_set():
-                    raise InterruptedError
-                keyboard.press_and_release("3")
-                time.sleep(delay)
-
-                # 5. Enter 키 입력
-                if stop_event.is_set():
-                    raise InterruptedError
-                keyboard.press_and_release("enter")
-                time.sleep(delay)
-
+            keyboard_input('esc')
+            mouse_right_click()
+            keyboard_input('2')
+            keyboard_input('2')
+            time.sleep(0.01)
+            keyboard_input('1')
+            for _ in range(repeat_count_1):
+                mouse_right_click()
+                keyboard_input('4')
+                keyboard_input('up')
+                time.sleep(0.01)
+                keyboard_input('enter')
+                mouse_right_click()
+                keyboard_input('tab')
+                time.sleep(0.01)
+                keyboard_input('tab')
+                for _ in range(repeat_count_2):
+                    mouse_right_click()
+                    keyboard_input('3')
+                    time.sleep(0.03)
+                keyboard_input('esc')
+            time.sleep(0.02)
     except InterruptedError:
         update_status("F2 동작이 중단되었습니다.")
+        pyautogui.rightClick()  # 일반 우클릭
 
 def f3_action():
     """
@@ -94,6 +112,16 @@ def f4_action():
         print(f"F4 실행 중... ({i + 1}초)")
         stop_event.wait(1)
     update_status("F4 동작 완료!")
+
+def keyboard_input(command):
+    if stop_event.is_set():
+        raise InterruptedError
+    keyboard.send(command)
+
+def mouse_input(click):
+    if stop_event.is_set():
+        raise InterruptedError
+    pyautogui.rightClick()  # 마우스 우클릭
 
 def update_status(message):
     """

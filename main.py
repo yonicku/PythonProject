@@ -3,22 +3,23 @@ import keyboard
 import threading
 import time
 import pygetwindow as gw
+import pyautogui
 
 # 전역 변수로 동작 상태 추적
-f1_action_active = False
+"""f1_action_active = False
 f2_action_active = False
 
-def activate_window(window_title):
-    """지정된 창을 활성화합니다."""
-    windows = gw.getWindowsWithTitle(window_title)
+def activate_window():
+
+    windows = gw.getWindowsWithTitle("MapleStory Worlds-바람의나라 클래식")
     if not windows:
-        raise Exception(f"Window with title '{window_title}' not found.")
+        raise Exception("Window with title not found.")
     window = windows[0]
     window.activate()
     return window
 
 def perform_f1_action(window_title):
-    """F1 키 동작을 수행하거나 중지합니다."""
+
     while f1_action_active:
         try:
             activate_window(window_title)
@@ -33,7 +34,7 @@ def perform_f1_action(window_title):
             break
 
 def perform_f2_action_start(window_title):
-    """F2 키 동작 시작."""
+
     global f1_action_active, f2_action_active
 
     if f2_action_active:
@@ -52,14 +53,14 @@ def perform_f2_action_start(window_title):
             break
 
 def perform_f2_action_stop():
-    """F2 키 동작 중지."""
+
     global f2_action_active
     if f2_action_active:
         print("F2 동작 중지")
         f2_action_active = False
 
 def key_listener(window_title):
-    """키 이벤트를 등록합니다."""
+
     # F1 키 이벤트 등록
     keyboard.on_press_key('f1', lambda _: perform_f1_action(window_title))
     # F2 키 이벤트 등록
@@ -67,12 +68,12 @@ def key_listener(window_title):
     keyboard.on_release_key('f2', lambda _: perform_f2_action_stop())
 
 def start_key_listener(window_title):
-    """키 리스너를 별도의 스레드에서 실행합니다."""
+
     listener_thread = threading.Thread(target=key_listener, args=(window_title,))
     listener_thread.start()
 
 def create_gui():
-    """GUI를 생성하고 실행합니다."""
+
     root = tk.Tk()
     root.title("키 동작 제어")
     root.geometry("300x170")
@@ -92,3 +93,5 @@ if __name__ == "__main__":
 
     app = create_gui()
     app.mainloop()
+"""
+pyautogui.mouseInfo()
